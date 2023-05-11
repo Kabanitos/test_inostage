@@ -1,0 +1,125 @@
+---
+- name: Add parametrs /etc/hosts
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: 192.168.56.10 dc1.test.loc dc1
+
+- name: Update repository
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Install packages
+  ansible.builtin.apt:
+    pkg:
+    - expect
+    - acl
+    - attr
+    - samba
+    - samba-dsdb-modules
+    - samba-vfs-modules
+    - winbind
+    - libpam-winbind
+    - libnss-winbind
+    - libpam-krb5
+    - krb5-config
+    - krb5-user
+    - dnsutils
+    - chrony
+    - net-tools
+    state: latest
+
+#- name: Rename file conf
+#  ansible.builtin.copy: 
+#    src: '{{item.src}}'
+#    dest: '{{item.dest}}'
+#    remote_src: true
+#  loop:
+#    - {src: /etc/samba/smb.conf, dest: /etc/samba/smb.conf.back }
+#    - {src: /etc/krb5.conf, dest: /etc/krb5.conf.back }
+
+
+- name: Create AD Domain Configuration
+  ansible.builtin.shell: |
+   spawn samba-tool domain provision --use-rfc2307 --interactive
+
+    expect "Realm:"
+    send "test.loc\n"
+
+    expect "Domain [test]:"
+    send "test\n"
+
+    expect "Server Role (dc, member, standalone) [dc]:"
+    send "dc\n"
+
+    expect "DNS backend (SAMBA_INTERNAL, BIND9_FLATFILE, BIND9_DLZ, NONE) [SAMBA_INTERNAL]:"
+    send "SAMBA_INTERNAL\n"
+
+    expect "DNS forwarder IP address (write 'none' to disable forwarding) [127.0.0.53]:"
+    send "77.88.8.8 77.88.8.1\n"
+    
+    expect "Administrator password:"
+    send "Vagrant1\n"
+
+    expect "Retype password:"
+    send "Vagrant1\n"
+  args:
+    executable: /usr/bin/expect
+
+- name: Rename file conf
+  ansible.builtin.copy:
+    src: /var/lib/samba/private/krb5.conf
+    dest: /etc/krb5.conf
+    remote_src: true
+
+- name: stop service systemd-resolved
+  ansible.builtin.systemd:
+    name: systemd-resolved
+    state: stoped
+    enabled: false
+
+- name: Unlink file /etc/resolv.conf
+  ansible.builtin.file:
+    path: /etc/resolv.conf
+    state: absent
+
+- name: Create file /etc/resolv.conf and add parameters
+  ansible.builtin.blockinfile:
+    create: true
+    path: /etc/resolv.conf
+    block: |
+      nameserver 192.168.56.15
+      search test.loc
+
+- name: Change file ownership, group and permissions /var/lib/samba/ntp_signd
+  ansible.builtin.file:
+    path: /var/lib/samba/ntp_signd
+    owner: root
+    group: _chrony
+    mode: '0755'
+
+- name: Copy file configuration chronyd
+  ansible.builtin.copy:
+    src: chrony.conf
+    dest: /etc/chrony/chrony.conf
+    follow: yes
+
+- name: Stoped and masked service
+  ansible.builtin.systemd:
+    state: stoped
+    masked: yes
+    enabled: false
+    name: "{{ item }}"
+  with_items:
+    - smbd
+    - nmbd
+    - winbind
+
+- name: Unmask and start service samba-ad-dc
+  ansible.builtin.systemd:
+    name: samba-ad-dc
+    state: started
+    masked: no 
+    enabled: yes
+
+
+
