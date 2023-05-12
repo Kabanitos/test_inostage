@@ -1,5 +1,5 @@
 ---
-- name: Add parametrs /etc/hosts
+- name: Add parameters /etc/hosts
   ansible.builtin.lineinfile:
     path: /etc/hosts
     line: 192.168.56.10 dc1.test.loc dc1
@@ -28,44 +28,25 @@
     - net-tools
     state: latest
 
-#- name: Rename file conf
-#  ansible.builtin.copy: 
-#    src: '{{item.src}}'
-#    dest: '{{item.dest}}'
-#    remote_src: true
-#  loop:
-#    - {src: /etc/samba/smb.conf, dest: /etc/samba/smb.conf.back }
-#    - {src: /etc/krb5.conf, dest: /etc/krb5.conf.back }
-
+- name: Rename file conf
+  ansible.builtin.file: 
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/samba/smb.conf
+    - /etc/krb5.conf
 
 - name: Create AD Domain Configuration
-  ansible.builtin.shell: |
-   spawn samba-tool domain provision --use-rfc2307 --interactive
+  ansible.builtin.command: samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=SAMBA_INTERNAL --domain={{ domain }} --adminpass={{ adminpass }} --realm={{ realm }}
 
-    expect "Realm:"
-    send "test.loc\n"
+- name: Change parameters /etc/samba/smb.conf
+  ansible.builtin.lineinfile:
+    path: /etc/samba/smb.conf
+    regexp: '^127\.0\.0\.53'
+    line: 77.88.8.8  77.88.8.1 
 
-    expect "Domain [test]:"
-    send "test\n"
 
-    expect "Server Role (dc, member, standalone) [dc]:"
-    send "dc\n"
-
-    expect "DNS backend (SAMBA_INTERNAL, BIND9_FLATFILE, BIND9_DLZ, NONE) [SAMBA_INTERNAL]:"
-    send "SAMBA_INTERNAL\n"
-
-    expect "DNS forwarder IP address (write 'none' to disable forwarding) [127.0.0.53]:"
-    send "77.88.8.8 77.88.8.1\n"
-    
-    expect "Administrator password:"
-    send "Vagrant1\n"
-
-    expect "Retype password:"
-    send "Vagrant1\n"
-  args:
-    executable: /usr/bin/expect
-
-- name: Rename file conf
+- name: Copy file krb5.conf
   ansible.builtin.copy:
     src: /var/lib/samba/private/krb5.conf
     dest: /etc/krb5.conf
@@ -74,7 +55,7 @@
 - name: stop service systemd-resolved
   ansible.builtin.systemd:
     name: systemd-resolved
-    state: stoped
+    state: stopped
     enabled: false
 
 - name: Unlink file /etc/resolv.conf
@@ -105,7 +86,7 @@
 
 - name: Stoped and masked service
   ansible.builtin.systemd:
-    state: stoped
+    state: stopped
     masked: yes
     enabled: false
     name: "{{ item }}"
