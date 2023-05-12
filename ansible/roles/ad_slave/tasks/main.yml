@@ -1,8 +1,10 @@
 ---
 - name: Add parameters /etc/hosts
-  ansible.builtin.lineinfile:
+  ansible.builtin.blockinfile:
     path: /etc/hosts
-    line: 192.168.56.10 dc1.test.loc dc1
+    block: | 
+      192.168.56.10 dc1.test.loc dc1
+      192.168.56.15 dc2.test.loc dc2
 
 - name: Update repository
   ansible.builtin.apt:
@@ -28,7 +30,7 @@
     - net-tools
     state: latest
 
-- name: Rename file conf
+- name: Delete file conf
   ansible.builtin.file: 
     path: "{{ item }}"
     state: absent
@@ -36,15 +38,13 @@
     - /etc/samba/smb.conf
     - /etc/krb5.conf
 
-- name: Create AD Domain Configuration
-  ansible.builtin.command: samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=SAMBA_INTERNAL --domain={{ domain }} --adminpass={{ adminpass }} --realm={{ realm }}
+- name: Add dns sever
+  ansible.builtin.copy:
+    src: resolv.conf
+    dest: /etc/resolv.conf
 
-- name: Change parameters /etc/samba/smb.conf
-  ansible.builtin.replace:
-    dest: /etc/samba/smb.conf
-    regexp: '127.0.0.53'
-    replace: '77.88.8.8  77.88.8.1' 
-
+- name: Join AD Domain Configuration
+  ansible.builtin.command: samba-tool domain join {{ realm }} DC -W AD -U Administrator --password={{ adminpass }} 
 
 - name: Copy file krb5.conf
   ansible.builtin.copy:
@@ -68,7 +68,7 @@
     create: true
     path: /etc/resolv.conf
     block: |
-      nameserver 192.168.56.10
+      nameserver 192.168.56.15
       search test.loc
 
 - name: Copy file configuration chronyd
