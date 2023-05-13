@@ -11,7 +11,6 @@
 - name: Install packages
   ansible.builtin.apt:
     pkg:
-    - expect
     - acl
     - attr
     - samba
@@ -103,4 +102,46 @@
     owner: root
     group: _chrony
     mode: '0755'
+
+- name: generate SSH key
+  ansible.builtin.user:
+    name: root
+    generate_ssh_key: yes
+    ssh_key_bits: 2048
+    ssh_key_file: .ssh/id_rsa
+
+- name: view ssh key pub
+  shell: cat /root/.ssh/id_rsa.pub
+  register: ssh_key_client
+
+- name: input ssh key client in server file
+  ansible.builtin.lineinfile:
+    path: /root/.ssh/authorized_keys
+    line: '{{ssh_key_client.stdout}}' 
+  delegate_to: dc2
+
+- name: Create a directory /.ssh/ctl
+  ansible.builtin.file:
+    path: /root/.ssh/ctl
+    state: directory
+    mode: '0755'
+
+- name: Copy config file
+  ansible.builtin.copy:
+    src: config
+    dest: /root/.ssh/ctl/config
+    follow: yes
+
+- name: Create file sysvol-sync.log
+  ansible.builtin.file:
+    path: /var/log/unison-sync.log
+    state: touch
+    mode: '640'
+
+- name: Create a directory /root/.unison
+  ansible.builtin.file:
+    path: /root/.unison
+    state: directory
+    mode: '0755'
+
 

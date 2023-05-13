@@ -28,6 +28,9 @@
     - dnsutils
     - chrony
     - net-tools
+    - rsync
+    - unison
+
     state: latest
 
 - name: Delete file conf
@@ -45,6 +48,13 @@
 
 - name: Join AD Domain Configuration
   ansible.builtin.command: samba-tool domain join {{ realm }} DC -W AD -U Administrator --password={{ adminpass }} 
+
+- name: Add a new string
+  ansible.builtin.lineinfile:
+    dest: /etc/samba/smb.conf
+    insertbefore: 'netbios name = DC2'
+    line: 'dns forwarder = 77.88.8.8  77.88.8.1'
+
 
 - name: Copy file krb5.conf
   ansible.builtin.copy:
@@ -102,3 +112,8 @@
     group: _chrony
     mode: '0755'
 
+#- name: Synchronization
+#  ansible.builtin.command: /usr/bin/rsync -XAavz --log-file /var/log/sysvol-sync.log --delete-after -f"+ */" -f"- *" /var/lib/samba/{sysvol,netlogon}
+#
+#-- name: Synchronization
+#  ansible.builtin.command: root@dc  

@@ -3,7 +3,8 @@
   become_user: root
   
   roles:
-      - ad_master
+    - ad_master
+    - openssl
   vars_files:
     - vars.yml
 

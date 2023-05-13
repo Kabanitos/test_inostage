@@ -1,0 +1,57 @@
+---
+- name: Генерация корневой пары ключ-сертификат 1
+  community.crypto.openssl_privatekey:
+    path: /tmp/rootCA.key
+    size: 2046
+
+- name: Генерация корневой пары ключ-сертификат 2
+  community.crypto.x509_certificate:
+    path: /tmp/rootCA.crt
+    privatekey_path: /tmp/rootCA.key
+    provider: selfsigned
+
+- name: Генерация приватного ключа и сертификата, подписанного корневым сертификатом 1
+  community.crypto.openssl_privatekey:
+    path: /tmp/dc1.test.loc.key
+    size: 2046
+
+- name: Генерация приватного ключа и сертификата, подписанного корневым сертификатом 2
+  community.crypto.openssl_csr:
+    path: /tmp/dc1.test.loc.csr
+    privatekey_path: /tmp/dc1.test.loc.key
+
+- name: Генерация сертификата
+  community.crypto.x509_certificate:
+    path: /tmp/dc1.test.loc.crt
+    csr_path: /tmp/dc1.test.loc.csr
+    ownca_path: /tmp/rootCA.crt
+    ownca_privatekey_path: /tmp/rootCA.key
+    provider: ownca
+
+- name: Copy sslcrt 
+  ansible.builtin.copy:
+    src: /tmp/{{ item }}
+    dest: /var/lib/samba/private/tls/{{ item }}
+    remote_src: true
+  with_items:
+    - dc1.test.loc.crt
+    - rootCA.crt
+    - dc1.test.loc.key
+
+- name: Adding parameters in file smb.conf
+  ansible.builtin.blockinfile:
+    path: /etc/samba/smb.conf
+    insertafter: "idmap_ldb:use rfc2307 = yes"
+    block: |
+      ldap server require strong auth = yes
+      tls enabled  = yes
+      tls keyfile  = tls/dc1.test.loc.key
+      tls certfile = tls/dc1.test.loc.crt
+      tls cafile   = tls/rootCA.crt
+
+- name: Unmask and start service samba-ad-dc
+  ansible.builtin.systemd:
+    name: samba-ad-dc
+    state: restarted
+    
+
