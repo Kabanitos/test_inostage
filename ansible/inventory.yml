@@ -7,4 +7,4 @@ all:
         dc2:
             ansible_user: vagrant
             ansible_host: 192.168.56.15
-            ansible_private_key_file: .vagrant/machines/dc2/virtualbox/private_key
+            ansible_private_key_file: ../.vagrant/machines/dc2/virtualbox/private_key

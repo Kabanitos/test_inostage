@@ -26,6 +26,8 @@
     - dnsutils
     - chrony
     - net-tools
+    - rsync
+    - unison
     state: latest
 
 - name: Rename file conf
