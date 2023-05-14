@@ -101,7 +101,7 @@
     path: /var/lib/samba/ntp_signd
     owner: root
     group: _chrony
-    mode: '0755'
+    mode: '0750'
 
 - name: generate SSH key
   ansible.builtin.user:

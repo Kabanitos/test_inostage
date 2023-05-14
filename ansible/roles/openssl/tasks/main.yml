@@ -1,42 +1,43 @@
 ---
 - name: Генерация корневой пары ключ-сертификат 1
   community.crypto.openssl_privatekey:
-    path: /tmp/rootCA.key
+    path: /tmp/rootCA.pem
     size: 2046
 
 - name: Генерация корневой пары ключ-сертификат 2
   community.crypto.x509_certificate:
-    path: /tmp/rootCA.crt
-    privatekey_path: /tmp/rootCA.key
+    path: /tmp/rootCA.pem
+    privatekey_path: /tmp/rootCA.pem
     provider: selfsigned
 
 - name: Генерация приватного ключа и сертификата, подписанного корневым сертификатом 1
   community.crypto.openssl_privatekey:
-    path: /tmp/dc1.test.loc.key
+    path: /tmp/dc1.test.loc.pem
     size: 2046
 
 - name: Генерация приватного ключа и сертификата, подписанного корневым сертификатом 2
   community.crypto.openssl_csr:
-    path: /tmp/dc1.test.loc.csr
-    privatekey_path: /tmp/dc1.test.loc.key
+    path: /tmp/dc1.test.loc.pem
+    privatekey_path: /tmp/dc1.test.loc.pem
+    common_name: dc1.test.loc
 
 - name: Генерация сертификата
   community.crypto.x509_certificate:
-    path: /tmp/dc1.test.loc.crt
-    csr_path: /tmp/dc1.test.loc.csr
-    ownca_path: /tmp/rootCA.crt
-    ownca_privatekey_path: /tmp/rootCA.key
+    path: /tmp/dc1.test.loc.pem
+    csr_path: /tmp/dc1.test.loc.pem
+    ownca_path: /tmp/rootCA.pem
+    ownca_privatekey_path: /tmp/rootCA.pem
     provider: ownca
 
 - name: Copy sslcrt 
   ansible.builtin.copy:
     src: /tmp/{{ item }}
-    dest: /var/lib/samba/private/tls/{{ item }}
+    dest: /etc/samba/tls/{{ item }}
     remote_src: true
   with_items:
-    - dc1.test.loc.crt
-    - rootCA.crt
-    - dc1.test.loc.key
+    - dc1.test.loc.pem
+    - rootCA.pem
+    - dc1.test.loc.pem
 
 - name: Adding parameters in file smb.conf
   ansible.builtin.blockinfile:
@@ -45,9 +46,9 @@
     block: |
       ldap server require strong auth = yes
       tls enabled  = yes
-      tls keyfile  = tls/dc1.test.loc.key
-      tls certfile = tls/dc1.test.loc.crt
-      tls cafile   = tls/rootCA.crt
+      tls keyfile  = tls/dc1.test.loc.pem
+      tls certfile = tls/dc1.test.loc.pem
+      tls cafile   = tls/rootCA.pem
 
 - name: Unmask and start service samba-ad-dc
   ansible.builtin.systemd:
