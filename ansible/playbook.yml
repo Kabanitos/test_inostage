@@ -3,16 +3,17 @@
   become_user: root
   
   roles:
-    - ad_master
-    - openssl
+#    - ad_master
+  #  - openssl
+    - date
   vars_files:
     - vars.yml
 
-- hosts: dc2
-  become: yes
-  become_user:
+#- hosts: dc2
+#  become: yes
+#  become_user:
 
-  roles:
-    - ad_slave
-  vars_files:
-    - vars.yml
+#  roles:
+#    - ad_slave
+#  vars_files:
+#    - vars.yml

@@ -13,7 +13,6 @@
 - name: Install packages
   ansible.builtin.apt:
     pkg:
-    - expect
     - acl
     - attr
     - samba
@@ -30,6 +29,7 @@
     - net-tools
     - rsync
     - unison
+    - ldap-utils
 
     state: latest
 

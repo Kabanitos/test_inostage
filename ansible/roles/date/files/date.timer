@@ -1,0 +1,9 @@
+[Unit]
+Description=Activate date.service every every even hour
+
+[Timer]
+OnCalendar=00/2:00:00
+Unit=date.service
+
+[Install]
+WantedBy=timers.target

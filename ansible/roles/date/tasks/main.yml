@@ -1,0 +1,39 @@
+---
+- name: Copy systemd service
+  ansible.builtin.copy:
+    src: '{{item}}'
+    dest: '/etc/systemd/system'
+    owner: root
+    group: root
+    mode: 622
+  loop:
+    - date.service
+    - date.timer
+
+- name: Copy scripts
+  ansible.builtin.copy:
+    src: '{{item}}'
+    dest: '/etc/systemd/system'
+    owner: root
+    group: root
+    mode: 755
+  loop:
+    - datetimer.sh
+    - cron.sh
+
+- name: daemon reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Start service date.timer
+  ansible.builtin.systemd:
+    name: date.timer
+    state: started
+    masked: no
+    enabled: true
+
+- name: Добавление в  cron  script
+  ansible.builtin.lineinfile:
+    path: /etc/crontab
+    line: '0  */2 * * * root /etc/systemd/system/cron.sh >> /var/log/date.txt'
+

@@ -27,6 +27,7 @@
     - net-tools
     - rsync
     - unison
+    - ldap-utils
     state: latest
 
 - name: Rename file conf

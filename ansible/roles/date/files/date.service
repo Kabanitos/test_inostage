@@ -1,0 +1,9 @@
+[Unit]
+Description=Viwe date 
+
+[Service]
+Type=oneshot
+ExecStart=/etc/systemd/system/datetimer.sh 
+StandardOutput=append:/var/log/date.txt
+[Install]
+WantedBy=multi-user.targe
